@@ -15,11 +15,24 @@ app.get('/:channel/feed.xml', function (req, res) {
 		title: 'Hello World!',
 		description: 'First post',
 		url: 'http://localhost:9000/librecast#hello-world',
-		date: new Date(),
+		date: 'November 5, 1984',
 		enclosure: {
 			url: 'http://download.blender.org/peach/bigbuckbunny_movies/big_buck_bunny_480p_surround-fix.avi',
-			length: 220514438,
+			size: '220514438',
 			type: 'video/x-msvideo'
+		}
+	});
+
+	feed.item({
+		title: 'Torrent file',
+		description: 'Wow',
+		url: 'http://localhost:9000/librecast#torrent-file',
+		date: 'November 5, 1984',
+		enclosure: {
+			//url: 'magnet:?xt=urn:btih:4A5942DD1BB1DF3D2491B18FF48F627415E1947C&dn=the+interview+2014+720p+brrip+x264+yify&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce',
+			url: 'http://torcache.net/torrent/4A5942DD1BB1DF3D2491B18FF48F627415E1947C.torrent?title=%5Bkickass.so%5Dthe.interview.2014.720p.brrip.x264.yify',
+			size: '123456',
+			type: 'application/x-bittorrent' // For .torrent files
 		}
 	});
 
