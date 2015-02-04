@@ -26,6 +26,7 @@
     "bittorrent-tracker": "^3.0.3",
     "express": "^4.11.2",
     "parse-torrent": "^4.0.0",
+    "podcast": "^0.1.0",
     "random-port": "^0.1.0",
     "torrent-stream": "^0.16.2"
   }
