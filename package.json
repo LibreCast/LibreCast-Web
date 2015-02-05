@@ -24,6 +24,8 @@
   "homepage": "https://github.com/LibreCast/LibreCast-Web",
   "dependencies": {
     "bittorrent-tracker": "^3.0.3",
+    "bluebird": "^2.9.6",
+    "ejs": "^2.2.4",
     "express": "^4.11.2",
     "mime-types": "^2.0.8",
     "parse-torrent": "^4.0.0",

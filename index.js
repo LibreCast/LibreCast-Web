@@ -7,8 +7,11 @@ var baseUrl = 'http://localhost:'+port;
 
 var app = express();
 
+app.engine('ejs', require('ejs').renderFile);
+app.set('view engine', 'ejs');
+
 function indexFeed(Feed) {
-	var filename = (Feed === ATOM) ? 'atom' : 'feed';
+	var filename = (Feed === ATOM) ? 'atom' : 'rss';
 
 	var feed = new Feed({
 		title: 'LibreCast',
@@ -20,7 +23,7 @@ function indexFeed(Feed) {
 	var item = {
 		title: 'LibreCast',
 		description: 'LibreCast test channel',
-		url: baseUrl+'/librecast',
+		url: baseUrl+'/librecast/',
 		date: '05 October 2011 14:48 UTC'
 	};
 	if (Feed === ATOM) {
@@ -30,23 +33,24 @@ function indexFeed(Feed) {
 	}
 	feed.item(item);
 
-	return feed.xml(true);
+	return feed;
 }
 
 function channelFeed(Feed, channel) {
-	var filename = (Feed === ATOM) ? 'atom' : 'feed';
+	var filename = (Feed === ATOM) ? 'atom' : 'rss';
 
 	var feed = new Feed({
 		title: 'LibreCast',
 		feed_url: baseUrl+'/'+channel+'/'+filename+'.xml',
-		site_url: baseUrl+'/'+channel,
-		author: 'LibreCast'
+		site_url: baseUrl+'/'+channel+'/',
+		author: 'LibreCast',
+		generator: 'LibreCast'
 	});
 
 	feed.item({
 		title: 'Hello World!',
 		description: 'First post',
-		url: baseUrl+'/'+channel+'#hello-world',
+		url: baseUrl+'/'+channel+'/#hello-world',
 		date: '05 October 2011 14:48 UTC',
 		enclosure: {
 			url: 'http://download.blender.org/peach/bigbuckbunny_movies/big_buck_bunny_480p_surround-fix.avi',
@@ -58,7 +62,7 @@ function channelFeed(Feed, channel) {
 	feed.item({
 		title: 'Torrent file',
 		description: 'Wow',
-		url: baseUrl+'/'+channel+'#torrent-file',
+		url: baseUrl+'/'+channel+'/#torrent-file',
 		date: '05 October 2011 14:48 UTC',
 		enclosure: {
 			//url: 'magnet:?xt=urn:btih:4A5942DD1BB1DF3D2491B18FF48F627415E1947C&dn=the+interview+2014+720p+brrip+x264+yify&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce',
@@ -68,36 +72,44 @@ function channelFeed(Feed, channel) {
 		}
 	});
 
-	return feed.xml(true);
+	return feed;
 }
 
-app.get('/feed.xml', function (req, res) {
-	var xml = indexFeed(RSS);
+app.get('/', function (req, res) {
+	var feed = indexFeed(ATOM);
+	res.render('index', { feed: feed });
+});
+app.get('/rss.xml', function (req, res) {
+	var xml = indexFeed(RSS).xml(true);
 	res.type('application/rss+xml').send(xml);
 });
-
 app.get('/atom.xml', function (req, res) {
-	var xml = indexFeed(ATOM);
+	var xml = indexFeed(ATOM).xml(true);
 	res.type('application/atom+xml').send(xml);
 });
 
-app.get('/:channel/feed.xml', function (req, res) {
+app.get('/:channel/', function (req, res) {
 	var channel = req.params.channel;
 
-	var xml = channelFeed(RSS, channel);
+	var feed = channelFeed(ATOM, channel);
+	res.render('channel', { feed: feed });
+});
+app.get('/:channel/rss.xml', function (req, res) {
+	var channel = req.params.channel;
+
+	var xml = channelFeed(RSS, channel).xml(true);
 	res.type('application/rss+xml').send(xml);
 });
-
 app.get('/:channel/atom.xml', function (req, res) {
 	var channel = req.params.channel;
 
-	var xml = channelFeed(ATOM, channel);
+	var xml = channelFeed(ATOM, channel).xml(true);
 	res.type('application/atom+xml').send(xml);
 });
 
 app.use(express.static(__dirname+'/public'));
 
-var server = app.listen(9000, function () {
+var server = app.listen(port, function () {
 	var host = server.address().address;
 	var port = server.address().port;
 
