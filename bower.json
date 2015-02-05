@@ -21,5 +21,8 @@
     "test",
     "tests"
   ],
-  "dependencies": {}
+  "dependencies": {
+    "polymer": "Polymer/polymer#~0.5.4",
+    "font-roboto": "Polymer/font-roboto#~0.5.4"
+  }
 }

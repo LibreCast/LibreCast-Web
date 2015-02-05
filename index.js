@@ -75,6 +75,8 @@ function channelFeed(Feed, channel) {
 	return feed;
 }
 
+app.use('/app/', express.static(__dirname+'/public'));
+
 app.get('/', function (req, res) {
 	var feed = indexFeed(ATOM);
 	res.render('index', { feed: feed });
@@ -106,8 +108,6 @@ app.get('/:channel/atom.xml', function (req, res) {
 	var xml = channelFeed(ATOM, channel).xml(true);
 	res.type('application/atom+xml').send(xml);
 });
-
-app.use(express.static(__dirname+'/public'));
 
 var server = app.listen(port, function () {
 	var host = server.address().address;
