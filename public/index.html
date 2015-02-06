@@ -6,20 +6,88 @@
 
 	<meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
 
-	<script src="components/webcomponentsjs/webcomponents.js"></script>
-
-	<link rel="import" href="components/polymer/polymer.html">
-	<link rel="import" href="components/font-roboto/roboto.html">
+	<link rel="stylesheet" href="components/bootstrap/dist/css/bootstrap.min.css">
 
 	<meta name="mobile-web-app-capable" content="yes">
 </head>
-<body fullbleed unresolved>
-	<p>Hello there...</p>
+<body>
+	<div class="container">
+		<h1>LibreCast</h1>
+
+		<div id="channels" class="list-group"></div>
+	</div>
+
+	<script src="components/jquery/dist/jquery.min.js"></script>
+	<script src="components/bootstrap/dist/js/bootstrap.min.js"></script>
 
 	<script>
-	window.addEventListener('polymer-ready', function () {
-		//TODO
-		console.log('ready');
+	var $channels = $('#channels');
+
+	function loadFeed(url, done) {
+		var req = new XMLHttpRequest();
+
+		req.addEventListener('load', function () {
+			var xml = this.responseText;
+			var parser = new DOMParser();
+			var dom = parser.parseFromString(xml, "application/xml");
+			done(null, dom);
+		});
+
+		req.open('GET', url, true);
+		req.send();
+	}
+
+	function parseEntryTag(entry, selector, attr) {
+		var tag = entry.querySelector(selector);
+		if (!tag) {
+			return undefined;
+		}
+		if (!attr) {
+			return tag.textContent;
+		} else {
+			return tag.getAttribute(attr);
+		}
+	}
+	function parseEntry(entry) {
+		var item = {
+			id: parseEntryTag(entry, 'id'),
+			title: parseEntryTag(entry, 'title'),
+			summary: parseEntryTag(entry, 'summary'),
+			published: parseEntryTag(entry, 'published'),
+			url: parseEntryTag(entry, 'link[rel="alternate"][type="text/html"]', 'href'),
+			feed_url: parseEntryTag(entry, 'link[rel="alternate"][type="application/atom+xml"]', 'href'),
+		};
+
+		return item;
+	}
+	function appendChannel(item) {
+		var $item = $('<a></a>', {
+			href: '#',
+			'class': 'list-group-item'
+		});
+		$item.append($('<h4></h4>', { 'class': 'list-group-item-heading' }).text(item.title));
+		$item.append($('<p></p>', { 'class': 'list-group-item-text' }).text(item.summary));
+
+		$item.click(function (event) {
+			event.preventDefault();
+		});
+
+		$channels.append($item);
+	}
+
+	$(function () {
+		var channelsFeed = '/atom.xml';
+
+		loadFeed(channelsFeed, function (err, dom) {
+			if (err) return console.error('Could not load channels', err);
+
+			var feed = dom.firstChild;
+			var entries = feed.querySelectorAll('entry');
+			for (var i = 0; i < entries.length; i++) {
+				var item = parseEntry(entries[i]);
+				appendChannel(item);
+			}
+		});
 	});
 	</script>
 </body>

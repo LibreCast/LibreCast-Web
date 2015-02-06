@@ -22,7 +22,6 @@
     "tests"
   ],
   "dependencies": {
-    "polymer": "Polymer/polymer#~0.5.4",
-    "font-roboto": "Polymer/font-roboto#~0.5.4"
+    "bootstrap": "~3.3.2"
   }
 }

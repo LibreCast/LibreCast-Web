@@ -28,7 +28,7 @@ function indexFeed(Feed) {
 	};
 	if (Feed === ATOM) {
 		item.custom_elements = [
-			{ link: { _attr: { type: 'application/atom+xml', rel: 'alternate', href: item.url+'/atom.xml' } } }
+			{ link: { _attr: { type: 'application/atom+xml', rel: 'alternate', href: baseUrl+'/librecast/atom.xml' } } }
 		];
 	}
 	feed.item(item);
