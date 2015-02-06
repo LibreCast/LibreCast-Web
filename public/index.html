@@ -102,6 +102,8 @@
 	}
 
 	function showChannel(feedUrl) {
+		$mediaList.empty();
+
 		loadFeed(feedUrl, function (err, dom) {
 			if (err) return console.error('Could not load channels', err);
 
@@ -113,7 +115,6 @@
 			var entries = feed.querySelectorAll('entry');
 			for (var i = 0; i < entries.length; i++) {
 				var entry = parseEntry(entries[i]);
-				console.log(entry);
 				var $item = renderEntry(entry);
 				$mediaList.append($item);
 			}
@@ -122,6 +123,8 @@
 
 	$(function () {
 		var channelsFeed = '/atom.xml';
+
+		$channelsList.empty();
 
 		loadFeed(channelsFeed, function (err, dom) {
 			if (err) return console.error('Could not load channels', err);
