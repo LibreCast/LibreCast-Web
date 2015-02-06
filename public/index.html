@@ -11,17 +11,26 @@
 	<meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
-	<div class="container">
+	<div id="channels-list" class="container">
 		<h1>LibreCast</h1>
 
-		<div id="channels" class="list-group"></div>
+		<div class="list-group"></div>
+	</div>
+
+	<div id="media-list" class="container">
+		<h1></h1>
+
+		<div class="list-group"></div>
 	</div>
 
 	<script src="components/jquery/dist/jquery.min.js"></script>
 	<script src="components/bootstrap/dist/js/bootstrap.min.js"></script>
 
 	<script>
-	var $channels = $('#channels');
+	var $channels = $('#channels-list');
+	var $channelsList = $channels.find('.list-group');
+	var $media = $('#media-list');
+	var $mediaList = $media.find('.list-group');
 
 	function loadFeed(url, done) {
 		var req = new XMLHttpRequest();
@@ -48,6 +57,13 @@
 			return tag.getAttribute(attr);
 		}
 	}
+	function parseMetadata(feed) {
+		return {
+			id: parseEntryTag(feed, 'id'),
+			title: parseEntryTag(feed, 'title'),
+			updated: parseEntryTag(feed, 'updated')
+		};
+	}
 	function parseEntry(entry) {
 		var item = {
 			id: parseEntryTag(entry, 'id'),
@@ -55,24 +71,53 @@
 			summary: parseEntryTag(entry, 'summary'),
 			published: parseEntryTag(entry, 'published'),
 			url: parseEntryTag(entry, 'link[rel="alternate"][type="text/html"]', 'href'),
-			feed_url: parseEntryTag(entry, 'link[rel="alternate"][type="application/atom+xml"]', 'href'),
+			feed_url: parseEntryTag(entry, 'link[rel="alternate"][type="application/atom+xml"]', 'href')
 		};
+
+		var enclosures = entry.querySelectorAll('link[rel="enclosure"]');
+		if (enclosures.length) {
+			item.enclosures = [];
+			for (var i = 0; i < enclosures.length; i++) {
+				var enc = enclosures[i];
+				item.enclosures.push({
+					url: enc.getAttribute('href'),
+					type: enc.getAttribute('type'),
+					size: enc.getAttribute('length')
+				});
+			}
+		}
 
 		return item;
 	}
-	function appendChannel(item) {
+
+	function renderEntry(entry) {
 		var $item = $('<a></a>', {
-			href: '#',
+			href: entry.url,
 			'class': 'list-group-item'
 		});
-		$item.append($('<h4></h4>', { 'class': 'list-group-item-heading' }).text(item.title));
-		$item.append($('<p></p>', { 'class': 'list-group-item-text' }).text(item.summary));
+		$item.append($('<h4></h4>', { 'class': 'list-group-item-heading' }).text(entry.title));
+		$item.append($('<p></p>', { 'class': 'list-group-item-text' }).text(entry.summary));
 
-		$item.click(function (event) {
-			event.preventDefault();
+		return $item;
+	}
+
+	function showChannel(feedUrl) {
+		loadFeed(feedUrl, function (err, dom) {
+			if (err) return console.error('Could not load channels', err);
+
+			var feed = dom.firstChild;
+
+			var metadata = parseMetadata(feed);
+			$media.find('h1').text(metadata.title);
+
+			var entries = feed.querySelectorAll('entry');
+			for (var i = 0; i < entries.length; i++) {
+				var entry = parseEntry(entries[i]);
+				console.log(entry);
+				var $item = renderEntry(entry);
+				$mediaList.append($item);
+			}
 		});
-
-		$channels.append($item);
 	}
 
 	$(function () {
@@ -84,8 +129,16 @@
 			var feed = dom.firstChild;
 			var entries = feed.querySelectorAll('entry');
 			for (var i = 0; i < entries.length; i++) {
-				var item = parseEntry(entries[i]);
-				appendChannel(item);
+				var entry = parseEntry(entries[i]);
+
+				var $item = renderEntry(entry);
+				$item.click(function (event) {
+					event.preventDefault();
+
+					$(this).addClass('active');
+					showChannel(entry.feed_url);
+				});
+				$channelsList.append($item);
 			}
 		});
 	});
