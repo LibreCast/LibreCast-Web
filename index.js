@@ -2,7 +2,7 @@ var express = require('express');
 var RSS = require('rss');
 var ATOM = require('./lib/atom');
 
-var port = process.env.PORT || 9000;
+var port = process.env.PORT || 9090;
 var baseUrl = 'http://localhost:'+port;
 
 var app = express();
