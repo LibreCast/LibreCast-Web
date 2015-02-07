@@ -14,7 +14,8 @@ app.set('view engine', 'ejs');
 
 var router = app;
 if (baseUrl) {
-	router = app.route(url.parse(baseUrl).pathname);
+	router = express.Router();
+	app.use(url.parse(baseUrl).pathname, router);
 }
 
 function indexFeed(Feed) {
