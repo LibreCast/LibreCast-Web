@@ -17,10 +17,33 @@
 		<div class="list-group"></div>
 	</div>
 
-	<div id="media-list" class="container">
+	<div id="media-list" class="container" style="display:none;">
 		<h1></h1>
 
 		<div class="list-group"></div>
+	</div>
+
+	<div id="medium-player" class="container" style="display:none;">
+		<h1></h1>
+
+		<div class="player-image text-center">
+			<img class="img-responsive img-thumbnail">
+		</div>
+		<div class="player-video text-center">
+			<video controls></video>
+		</div>
+		<div class="player-audio text-center">
+			<audio controls></audio>
+		</div>
+		<div class="player-fallback">
+			<p class="text-center">
+				<a href="#" class="btn btn-primary btn-lg" target="_blank">Open media</a>
+			</p>
+		</div>
+
+		<div class="player-metadata">
+			<p></p>
+		</div>
 	</div>
 
 	<script src="components/jquery/dist/jquery.min.js"></script>
@@ -31,6 +54,12 @@
 	var $channelsList = $channels.find('.list-group');
 	var $media = $('#media-list');
 	var $mediaList = $media.find('.list-group');
+	var $player = $('#medium-player');
+	var $imagePlayer = $player.find('.player-image img');
+	var $audioPlayer = $player.find('.player-audio audio');
+	var $videoPlayer = $player.find('.player-video video');
+	var $fallbackPlayer = $player.find('.player-fallback');
+	var $playerMetadata = $player.find('.player-metadata');
 
 	function loadFeed(url, done) {
 		var req = new XMLHttpRequest();
@@ -53,6 +82,8 @@
 		}
 		if (!attr) {
 			return tag.textContent;
+		} else if (attr == 'innerHTML') {
+			return tag.innerHTML;
 		} else {
 			return tag.getAttribute(attr);
 		}
@@ -69,6 +100,7 @@
 			id: parseEntryTag(entry, 'id'),
 			title: parseEntryTag(entry, 'title'),
 			summary: parseEntryTag(entry, 'summary'),
+			content: parseEntryTag(entry, 'content', 'innerHTML'),
 			published: parseEntryTag(entry, 'published'),
 			url: parseEntryTag(entry, 'link[rel="alternate"][type="text/html"]', 'href'),
 			feed_url: parseEntryTag(entry, 'link[rel="alternate"][type="application/atom+xml"]', 'href')
@@ -90,7 +122,7 @@
 		return item;
 	}
 
-	function renderEntry(entry) {
+	function renderChannelEntry(entry) {
 		var $item = $('<a></a>', {
 			href: entry.url,
 			'class': 'list-group-item'
@@ -98,11 +130,118 @@
 		$item.append($('<h4></h4>', { 'class': 'list-group-item-heading' }).text(entry.title));
 		$item.append($('<p></p>', { 'class': 'list-group-item-text' }).text(entry.summary));
 
+		$item.click(function (event) {
+			event.preventDefault();
+
+			$(this).addClass('active');
+			showChannel(entry.feed_url);
+		});
+
+		return $item;
+	}
+
+	function getEnclosureType(enclosure) {
+		if (!enclosure.type) {
+			return false;
+		}
+
+		if (enclosure.type.indexOf('image/') === 0) {
+			return 'image';
+		}
+		if (enclosure.type.indexOf('audio/') === 0) {
+			return 'audio';
+		}
+		if (enclosure.type.indexOf('video/') === 0) {
+			return 'video';
+		}
+		if (enclosure.type == 'application/x-bittorrent') {
+			return 'torrent';
+		}
+
+		return false;
+	}
+	function isEnclosureSupported(enclosure) {
+		return (getEnclosureType(enclosure) !== false);
+	}
+	function openEnclosure(enclosure) {
+		var type = getEnclosureType(enclosure);
+		$player.children('div:not(.player-metadata)').hide();
+		if ($player.find('.player-'+type).length) {
+			$player.find('.player-'+type).show();
+		} else {
+			$player.find('.player-fallback').show();
+		}
+		$player.show();
+
+		switch (getEnclosureType(enclosure)) {
+			case 'image':
+				$imagePlayer.attr('src', enclosure.url);
+			case 'audio':
+				$audioPlayer.attr('src', enclosure.url);
+				break;
+			case 'video':
+				$videoPlayer.attr('src', enclosure.url);
+				break;
+			default:
+				$fallbackPlayer.find('a').attr('href', enclosure.url);
+				return;
+		}
+	}
+	function openMedium(entry) {
+		var enclosure = getMediumEnclosure(entry);
+
+		$player.find('h1').text(entry.title);
+		if (entry.summary) {
+			$player.find('h1').append('<br>').append($('<small></small>').text(entry.summary));
+		}
+
+		$playerMetadata.find('p').html(entry.content || '');
+
+		openEnclosure(enclosure);
+	}
+
+	function getMediumEnclosure(entry) {
+		for (var i = 0; i < entry.enclosures.length; i++) {
+			var enc = entry.enclosures[i];
+			if (isEnclosureSupported(enc)) {
+				return enc;
+			}
+		}
+	}
+	function renderMediumEntry(entry) {
+		var enclosure = getMediumEnclosure(entry);
+
+		var icons = {
+			image: 'picture',
+			audio: 'volume-up',
+			video: 'facetime-video',
+			torrent: ''
+		};
+		var icon = icons[getEnclosureType(enclosure)];
+
+		var $item = $('<a></a>', {
+			href: entry.url,
+			target: '_blank',
+			'class': 'list-group-item'
+		});
+		$item.append($('<h4></h4>', { 'class': 'list-group-item-heading' }).text(entry.title));
+		$item.append($('<p></p>', { 'class': 'list-group-item-text' }).text(entry.summary).prepend((icon) ? '<span class="glyphicon glyphicon-'+icon+'"></span>&nbsp;' : ''));
+
+		$item.click(function (event) {
+			if (enclosure) {
+				event.preventDefault();
+				$(this).parent().children('.active').removeClass('active');
+				$(this).addClass('active');
+				openMedium(entry);
+			}
+		});
+
 		return $item;
 	}
 
 	function showChannel(feedUrl) {
 		$mediaList.empty();
+		$media.show();
 
 		loadFeed(feedUrl, function (err, dom) {
 			if (err) return console.error('Could not load channels', err);
@@ -115,7 +254,7 @@
 			var entries = feed.querySelectorAll('entry');
 			for (var i = 0; i < entries.length; i++) {
 				var entry = parseEntry(entries[i]);
-				var $item = renderEntry(entry);
+				var $item = renderMediumEntry(entry);
 				$mediaList.append($item);
 			}
 		});
@@ -134,13 +273,7 @@
 			for (var i = 0; i < entries.length; i++) {
 				var entry = parseEntry(entries[i]);
 
-				var $item = renderEntry(entry);
-				$item.click(function (event) {
-					event.preventDefault();
-
-					$(this).addClass('active');
-					showChannel(entry.feed_url);
-				});
+				var $item = renderChannelEntry(entry);
 				$channelsList.append($item);
 			}
 		});

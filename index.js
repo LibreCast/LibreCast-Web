@@ -21,7 +21,7 @@ function indexFeed(Feed) {
 	});
 
 	var item = {
-		title: 'LibreCast',
+		title: 'LibreCast channel',
 		description: 'LibreCast test channel',
 		url: baseUrl+'/librecast/',
 		date: '05 October 2011 14:48 UTC'
@@ -40,22 +40,58 @@ function channelFeed(Feed, channel) {
 	var filename = (Feed === ATOM) ? 'atom' : 'rss';
 
 	var feed = new Feed({
-		title: 'LibreCast',
+		title: 'LibreCast channel',
 		feed_url: baseUrl+'/'+channel+'/'+filename+'.xml',
 		site_url: baseUrl+'/'+channel+'/',
 		author: 'LibreCast',
 		generator: 'LibreCast'
 	});
 
-	feed.item({
+	var item = {
 		title: 'Hello World!',
 		description: 'First post',
 		url: baseUrl+'/'+channel+'/#hello-world',
 		date: '05 October 2011 14:48 UTC',
 		enclosure: {
-			url: 'http://download.blender.org/peach/bigbuckbunny_movies/big_buck_bunny_480p_surround-fix.avi',
+			url: 'https://upload.wikimedia.org/wikipedia/commons/7/75/Big_Buck_Bunny_Trailer_400p.ogg',
 			size: '220514438',
-			type: 'video/x-msvideo'
+			type: 'video/ogg'
+		}
+	};
+	if (Feed === ATOM) {
+		item.custom_elements = [
+			{ content: [
+				{ _attr: { type: 'xhtml' } },
+				{ div: [
+					{ _attr: { xmlns: 'http://www.w3.org/1999/xhtml' } },
+					{ p: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec a diam lectus. Sed sit amet ipsum mauris. Maecenas congue ligula ac quam viverra nec consectetur ante hendrerit. Donec et mollis dolor. Praesent et diam eget libero egestas mattis sit amet vitae augue. Nam tincidunt congue enim, ut porta lorem lacinia consectetur. Donec ut libero sed arcu vehicula ultricies a non tortor. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean ut gravida lorem. Ut turpis felis, pulvinar a semper sed, adipiscing id dolor. Pellentesque auctor nisi id magna consequat sagittis. Curabitur dapibus enim sit amet elit pharetra tincidunt feugiat nisl imperdiet. Ut convallis libero in urna ultrices accumsan. Donec sed odio eros. Donec viverra mi quis quam pulvinar at malesuada arcu rhoncus. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. In rutrum accumsan ultricies. Mauris vitae nisi at sem facilisis semper ac in est.' }
+				] }
+			] }
+		];
+	}
+	feed.item(item);
+
+	feed.item({
+		title: 'Nyan Cat',
+		description: 'LOL',
+		url: baseUrl+'/'+channel+'/#nyan-cat',
+		date: '05 October 2011 14:48 UTC',
+		enclosure: {
+			url: 'https://upload.wikimedia.org/wikipedia/en/2/2a/Nyan_cat.ogg',
+			size: '220514438',
+			type: 'audio/ogg'
+		}
+	});
+
+	feed.item({
+		title: 'Temple',
+		description: 'A random Mediawiki picture',
+		url: baseUrl+'/'+channel+'/#temple',
+		date: '05 October 2011 14:48 UTC',
+		enclosure: {
+			url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Fifty_Five_Window_Palace_np_GP_%2810%29.JPG/1024px-Fifty_Five_Window_Palace_np_GP_%2810%29.JPG',
+			size: '220514438',
+			type: 'image/jpg'
 		}
 	});
 
