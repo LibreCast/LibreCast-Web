@@ -1,9 +1,10 @@
 var express = require('express');
 var RSS = require('rss');
 var ATOM = require('./lib/atom');
+var config = require('./config');
 
-var port = process.env.PORT || 9090;
-var baseUrl = 'http://localhost:'+port;
+var port = process.env.PORT || config.port || 9090;
+var baseUrl = config.base || '';
 
 var app = express();
 
