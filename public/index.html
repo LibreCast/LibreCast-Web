@@ -210,6 +210,10 @@
 	}
 
 	function getMediumEnclosure(entry) {
+		if (!entry.enclosures) {
+			return;
+		}
+
 		for (var i = 0; i < entry.enclosures.length; i++) {
 			var enc = entry.enclosures[i];
 			if (isEnclosureSupported(enc)) {
