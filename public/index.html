@@ -65,6 +65,11 @@
 		var req = new XMLHttpRequest();
 
 		req.addEventListener('load', function () {
+			if (String(this.status)[0] != '2') { // Not 2xx
+				done('HTTP error: '+this.status);
+				return;
+			}
+
 			var xml = this.responseText;
 			var parser = new DOMParser();
 			var dom = parser.parseFromString(xml, "application/xml");
@@ -244,7 +249,7 @@
 		$media.show();
 
 		loadFeed(feedUrl, function (err, dom) {
-			if (err) return console.error('Could not load channels', err);
+			if (err) return alert('Could not load channel: ' + err);
 
 			var feed = dom.firstChild;
 
@@ -266,7 +271,7 @@
 		$channelsList.empty();
 
 		loadFeed(channelsFeed, function (err, dom) {
-			if (err) return console.error('Could not load channels', err);
+			if (err) return alert('Could not load channels list: ' + err);
 
 			var feed = dom.firstChild;
 			var entries = feed.querySelectorAll('entry');
