@@ -119,6 +119,15 @@ function channelFeed(Feed, channel) {
 	return feed;
 }
 
+function sendFeed(res, feed) {
+	var feedType = (feed.constructor === ATOM) ? 'atom' : 'rss';
+	var xml = feed.xml(true);
+
+	res.header('Access-Control-Allow-Origin', '*');
+	res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+	res.type('application/'+feedType+'+xml').send(xml);
+}
+
 router.use('/app/', express.static(__dirname+'/public'));
 
 router.get('/', function (req, res) {
@@ -126,12 +135,12 @@ router.get('/', function (req, res) {
 	res.render('index', { feed: feed });
 });
 router.get('/rss.xml', function (req, res) {
-	var xml = indexFeed(RSS).xml(true);
-	res.type('application/rss+xml').send(xml);
+	var feed = indexFeed(RSS);
+	sendFeed(res, feed);
 });
 router.get('/atom.xml', function (req, res) {
-	var xml = indexFeed(ATOM).xml(true);
-	res.type('application/atom+xml').send(xml);
+	var feed = indexFeed(ATOM);
+	sendFeed(res, feed);
 });
 
 router.get('/:channel/', function (req, res) {
@@ -143,14 +152,14 @@ router.get('/:channel/', function (req, res) {
 router.get('/:channel/rss.xml', function (req, res) {
 	var channel = req.params.channel;
 
-	var xml = channelFeed(RSS, channel).xml(true);
-	res.type('application/rss+xml').send(xml);
+	var feed = channelFeed(RSS, channel);
+	sendFeed(res, feed);
 });
 router.get('/:channel/atom.xml', function (req, res) {
 	var channel = req.params.channel;
 
-	var xml = channelFeed(ATOM, channel).xml(true);
-	res.type('application/atom+xml').send(xml);
+	var feed = channelFeed(ATOM, channel);
+	sendFeed(res, feed);
 });
 
 var server = app.listen(port, function () {
