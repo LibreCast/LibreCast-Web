@@ -1,5 +1,6 @@
 var url = require('url');
 var express = require('express');
+var bodyParser = require('body-parser');
 var RSS = require('rss');
 var ATOM = require('./lib/atom');
 var Waterline = require('waterline');
@@ -42,11 +43,12 @@ var Feed = Waterline.Collection.extend({
 	attributes: {
 		slug: {
 			type: 'string',
-			index: true
+			index: true,
+			unique: true
 		},
 		title: 'string',
 		summary: 'string',
-		url: 'string',
+		atom_url: 'string',
 		image: 'string',
 		author: 'string',
 		rights: 'string',
@@ -65,7 +67,8 @@ var FeedItem = Waterline.Collection.extend({
 	attributes: {
 		slug: {
 			type: 'string',
-			index: true
+			index: true,
+			unique: true
 		},
 		title: 'string',
 		subtitle: 'string',
@@ -139,7 +142,7 @@ function renderFeedsFeed(feeds, Xml) {
 		};
 		if (Xml === ATOM) {
 			item.custom_elements = [
-				{ link: { _attr: { type: 'application/atom+xml', rel: 'alternate', href: baseUrl+'/'+f.slug+'/atom.xml' } } }
+				{ link: { _attr: { type: 'application/atom+xml', rel: 'alternate', href: f.atom_url || baseUrl+'/'+f.slug+'/atom.xml' } } }
 			];
 		}
 		feed.item(item);
@@ -226,7 +229,7 @@ function populateDb(app) {
 				url: 'https://upload.wikimedia.org/wikipedia/commons/7/75/Big_Buck_Bunny_Trailer_400p.ogg',
 				type: 'video/ogg',
 				item: item.id
-			}).exec(function (err, feed) {
+			}).exec(function (err, enclosure) {
 				if (err) throw err;
 			});
 		});
@@ -243,7 +246,7 @@ function populateDb(app) {
 				url: 'https://upload.wikimedia.org/wikipedia/en/2/2a/Nyan_cat.ogg',
 				type: 'audio/ogg',
 				item: item.id
-			}).exec(function (err, feed) {
+			}).exec(function (err, enclosure) {
 				if (err) throw err;
 			});
 		});
@@ -260,7 +263,7 @@ function populateDb(app) {
 				url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Fifty_Five_Window_Palace_np_GP_%2810%29.JPG/1024px-Fifty_Five_Window_Palace_np_GP_%2810%29.JPG',
 				type: 'image/jpeg',
 				item: item.id
-			}).exec(function (err, feed) {
+			}).exec(function (err, enclosure) {
 				if (err) throw err;
 			});
 		});
@@ -278,15 +281,27 @@ function populateDb(app) {
 				url: 'http://torcache.net/torrent/4A5942DD1BB1DF3D2491B18FF48F627415E1947C.torrent?title=%5Bkickass.so%5Dthe.interview.2014.720p.brrip.x264.yify',
 				type: 'application/x-bittorrent',
 				item: item.id
-			}).exec(function (err, feed) {
+			}).exec(function (err, enclosure) {
 				if (err) throw err;
 			});
 		});
+	});
+
+	app.models.feed.create({
+		slug: 'tibounise',
+		title: 'Tibounise',
+		summary: 'Tibounise blog feed',
+		author: 'Tibounise',
+		atom_url: 'http://tibounise.fr/feed.atom'
+	}).exec(function (err, feed) {
+		if (err) throw err;
 	});
 }
 
 function setupApi(app) {
 	var router = express.Router();
+
+	router.use(bodyParser.json());
 
 	router.get('/', function (req, res) {
 		res.json({
@@ -296,7 +311,7 @@ function setupApi(app) {
 
 	router.get('/feeds', function (req, res) {
 		app.models.feed.find().exec(function (err, models) {
-			if (err) return res.json({ err: err }, 500);
+			if (err) return res.json(err, err.status);
 
 			models.forEach(function (model) {
 				model.url = baseUrl+'/api/feeds/'+model.slug;
@@ -306,11 +321,18 @@ function setupApi(app) {
 		});
 	});
 
+	router.post('/feeds', function (req, res) {
+		app.models.feed.create(req.body, function (err, model) {
+			if (err) return res.json(err, err.status);
+			res.json(model);
+		});
+	});
+
 	router.get('/feeds/:slug', function (req, res) {
 		app.models.feed.findOne({ slug: req.params.slug }, function (err, feed) {
-			if (err) return res.json({ err: err }, 500);
+			if (err) return res.json(err, err.status);
 			app.models.feeditem.find({ feed: feed.id }).populate('enclosures').exec(function (err, models) {
-				if (err) return res.json({ err: err }, 500);
+				if (err) return res.json(err, err.status);
 				res.json(models);
 			});
 		});
@@ -322,14 +344,14 @@ function setupApi(app) {
 function setupFeeds(app) {
 	app.get('/rss.xml', function (req, res) {
 		app.models.feed.find().exec(function (err, models) {
-			if (err) return res.json({ err: err }, 500);
+			if (err) return res.json(err, err.status);
 			var feed = renderFeedsFeed(models, RSS);
 			sendFeed(res, feed);
 		});
 	});
 	app.get('/atom.xml', function (req, res) {
 		app.models.feed.find().exec(function (err, models) {
-			if (err) return res.json({ err: err }, 500);
+			if (err) return res.json(err, err.status);
 			var feed = renderFeedsFeed(models, ATOM);
 			sendFeed(res, feed);
 		});
@@ -337,9 +359,9 @@ function setupFeeds(app) {
 
 	app.get('/:channel/rss.xml', function (req, res) {
 		app.models.feed.findOne({ slug: req.params.channel }, function (err, model) {
-			if (err) return res.json({ err: err }, 500);
+			if (err) return res.json(err, err.status);
 			app.models.feeditem.find({ feed: model.id }).populate('enclosures').exec(function (err, models) {
-				if (err) return res.json({ err: err }, 500);
+				if (err) return res.json(err, err.status);
 				var feed = renderItemsFeed(model, models, RSS);
 				sendFeed(res, feed);
 			});
@@ -347,9 +369,9 @@ function setupFeeds(app) {
 	});
 	app.get('/:channel/atom.xml', function (req, res) {
 		app.models.feed.findOne({ slug: req.params.channel }, function (err, model) {
-			if (err) return res.json({ err: err }, 500);
+			if (err) return res.json(err, err.status);
 			app.models.feeditem.find({ feed: model.id }).populate('enclosures').exec(function (err, models) {
-				if (err) return res.json({ err: err }, 500);
+				if (err) return res.json(err, err.status);
 				var feed = renderItemsFeed(model, models, ATOM);
 				sendFeed(res, feed);
 			});
@@ -360,7 +382,7 @@ function setupFeeds(app) {
 function setupSite(app) {
 	app.get('/', function (req, res) {
 		app.models.feed.find().exec(function (err, models) {
-			if (err) return res.json({ err: err }, 500);
+			if (err) return res.json(err, err.status);
 
 			res.render('index', { feeds: models });
 		});
@@ -368,9 +390,9 @@ function setupSite(app) {
 
 	app.get('/:channel/', function (req, res) {
 		app.models.feed.findOne({ slug: req.params.channel }, function (err, model) {
-			if (err) return res.json({ err: err }, 500);
+			if (err) return res.json(err, err.status);
 			app.models.feeditem.find({ feed: model.id }).populate('enclosures').exec(function (err, models) {
-				if (err) return res.json({ err: err }, 500);
+				if (err) return res.json(err, err.status);
 				res.render('channel', { feed: model, items: models });
 			});
 		});

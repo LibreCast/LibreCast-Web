@@ -88,6 +88,8 @@
 	<script>
 	$(function () {
 
+	var serverUrl = '..';
+
 	var $mainContainer = $('#main-container');
 	var $channels = $('#channels-list');
 	var $channelsList = $channels.find('.list-group');
@@ -182,6 +184,7 @@
 		$item.click(function (event) {
 			event.preventDefault();
 
+			$(this).parent().children('.active').removeClass('active');
 			$(this).addClass('active');
 			showChannel(entry.feed_url);
 		});
@@ -299,10 +302,10 @@
 	function showChannel(feedUrl) {
 		$mediaList.empty();
 
-		switchPage('media-list');
-
 		loadFeed(feedUrl, function (err, dom) {
 			if (err) return alert('Could not load channel: ' + err);
+
+			switchPage('media-list');
 
 			var feed = dom.firstChild;
 
@@ -335,7 +338,7 @@
 	});
 
 	// Load channels feed
-	var channelsFeed = '../atom.xml';
+	var channelsFeed = serverUrl+'/atom.xml';
 
 	$channelsList.empty();
 
