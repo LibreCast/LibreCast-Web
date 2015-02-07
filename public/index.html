@@ -7,42 +7,70 @@
 	<meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
 
 	<link rel="stylesheet" href="components/bootstrap/dist/css/bootstrap.min.css">
+	<link rel="stylesheet" href="components/fontawesome/css/font-awesome.min.css">
 
 	<meta name="mobile-web-app-capable" content="yes">
+
+	<style>
+	#media-list, #medium-player {
+		display: none;
+	}
+	header > .pull-right {
+		line-height: 36px;
+	}
+	</style>
 </head>
 <body>
-	<div id="channels-list" class="container">
-		<h1>LibreCast</h1>
+	<div id="main-container" class="container">
+		<div id="channels-list">
+			<header>
+				<div class="pull-right">
+					<a href="#" target="_blank" class="atom-link"><i class="fa fa-rss"></i></a>
+				</div>
+				<h1>LibreCast</h1>
+			</header>
 
-		<div class="list-group"></div>
-	</div>
-
-	<div id="media-list" class="container" style="display:none;">
-		<h1></h1>
-
-		<div class="list-group"></div>
-	</div>
-
-	<div id="medium-player" class="container" style="display:none;">
-		<h1></h1>
-
-		<div class="player-image text-center">
-			<img class="img-responsive img-thumbnail">
-		</div>
-		<div class="player-video text-center">
-			<video controls></video>
-		</div>
-		<div class="player-audio text-center">
-			<audio controls></audio>
-		</div>
-		<div class="player-fallback">
-			<p class="text-center">
-				<a href="#" class="btn btn-primary btn-lg" target="_blank">Open media</a>
-			</p>
+			<div class="list-group"></div>
 		</div>
 
-		<div class="player-metadata">
-			<p></p>
+		<div id="media-list" style="display:none;">
+			<header>
+				<div class="pull-right">
+					<a href="#" target="_blank" class="atom-link"><i class="fa fa-rss"></i></a>
+				</div>
+				<h1>
+					<a href="#" class="back-link"><i class="fa fa-angle-left"></i></a>&nbsp;
+					<span class="inner"></span>
+				</h1>
+			</header>
+
+			<div class="list-group"></div>
+		</div>
+
+		<div id="medium-player" style="display:none;">
+			<h1>
+				<a href="#" class="back-link"><i class="fa fa-angle-left"></i></a>&nbsp;
+				<span class="inner"></span>
+			</h1>
+
+			<div class="player-image text-center">
+				<img class="img-responsive img-thumbnail">
+			</div>
+			<div class="player-video text-center">
+				<video controls></video>
+			</div>
+			<div class="player-audio text-center">
+				<audio controls></audio>
+			</div>
+			<div class="player-fallback">
+				<p class="text-center">
+					<a href="#" class="btn btn-primary btn-lg" target="_blank">Open media</a>
+				</p>
+			</div>
+
+			<div class="player-metadata">
+				<p></p>
+			</div>
 		</div>
 	</div>
 
@@ -50,6 +78,9 @@
 	<script src="components/bootstrap/dist/js/bootstrap.min.js"></script>
 
 	<script>
+	$(function () {
+
+	var $mainContainer = $('#main-container');
 	var $channels = $('#channels-list');
 	var $channelsList = $channels.find('.list-group');
 	var $media = $('#media-list');
@@ -101,7 +132,8 @@
 		return {
 			id: parseEntryTag(feed, 'id'),
 			title: parseEntryTag(feed, 'title'),
-			updated: parseEntryTag(feed, 'updated')
+			updated: parseEntryTag(feed, 'updated'),
+			feed_url: parseEntryTag(feed, 'link[rel="self"]', 'href')
 		};
 	}
 	function parseEntry(entry) {
@@ -199,9 +231,11 @@
 	function openMedium(entry) {
 		var enclosure = getMediumEnclosure(entry);
 
-		$player.find('h1').text(entry.title);
+		switchPage('medium-player');
+
+		$player.find('h1 .inner').text(entry.title);
 		if (entry.summary) {
-			$player.find('h1').append('<br>').append($('<small></small>').text(entry.summary));
+			$player.find('h1 .inner').append('<br>').append($('<small></small>').text(entry.summary));
 		}
 
 		$playerMetadata.find('p').html(entry.content || '');
@@ -225,9 +259,9 @@
 		var enclosure = getMediumEnclosure(entry);
 
 		var icons = {
-			image: 'picture',
-			audio: 'volume-up',
-			video: 'facetime-video',
+			image: 'picture-o',
+			audio: 'music',
+			video: 'film',
 			torrent: ''
 		};
 		var icon = icons[getEnclosureType(enclosure)];
@@ -238,7 +272,7 @@
 			'class': 'list-group-item'
 		});
 		$item.append($('<h4></h4>', { 'class': 'list-group-item-heading' }).text(entry.title));
-		$item.append($('<p></p>', { 'class': 'list-group-item-text' }).text(entry.summary).prepend((icon) ? '<span class="glyphicon glyphicon-'+icon+'"></span>&nbsp;' : ''));
+		$item.append($('<p></p>', { 'class': 'list-group-item-text' }).text(entry.summary).prepend((icon) ? '<i class="fa fa-'+icon+'"></i>&nbsp;' : ''));
 
 		$item.click(function (event) {
 			if (enclosure) {
@@ -254,7 +288,8 @@
 
 	function showChannel(feedUrl) {
 		$mediaList.empty();
-		$media.show();
+
+		switchPage('media-list');
 
 		loadFeed(feedUrl, function (err, dom) {
 			if (err) return alert('Could not load channel: ' + err);
@@ -262,7 +297,8 @@
 			var feed = dom.firstChild;
 
 			var metadata = parseMetadata(feed);
-			$media.find('h1').text(metadata.title);
+			$media.find('h1 .inner').text(metadata.title);
+			$media.find('.atom-link').attr('href', metadata.feed_url);
 
 			var entries = feed.querySelectorAll('entry');
 			for (var i = 0; i < entries.length; i++) {
@@ -273,23 +309,43 @@
 		});
 	}
 
-	$(function () {
-		var channelsFeed = '../atom.xml';
+	function switchPage(newPage) {
+		$mainContainer.children().hide();
+		$mainContainer.children('#'+newPage).show();
+	}
 
-		$channelsList.empty();
+	// Setup events
+	$media.find('.back-link').click(function (event) {
+		event.preventDefault();
+		switchPage('channels-list');
+	});
+	$player.find('.back-link').click(function (event) {
+		event.preventDefault();
+		switchPage('media-list');
+	});
 
-		loadFeed(channelsFeed, function (err, dom) {
-			if (err) return alert('Could not load channels list: ' + err);
+	// Load channels feed
+	var channelsFeed = '../atom.xml';
 
-			var feed = dom.firstChild;
-			var entries = feed.querySelectorAll('entry');
-			for (var i = 0; i < entries.length; i++) {
-				var entry = parseEntry(entries[i]);
+	$channelsList.empty();
 
-				var $item = renderChannelEntry(entry);
-				$channelsList.append($item);
-			}
-		});
+	loadFeed(channelsFeed, function (err, dom) {
+		if (err) return alert('Could not load channels list: ' + err);
+
+		var feed = dom.firstChild;
+
+		var metadata = parseMetadata(feed);
+		$channels.find('.atom-link').attr('href', metadata.feed_url);
+
+		var entries = feed.querySelectorAll('entry');
+		for (var i = 0; i < entries.length; i++) {
+			var entry = parseEntry(entries[i]);
+
+			var $item = renderChannelEntry(entry);
+			$channelsList.append($item);
+		}
+	});
+
 	});
 	</script>
 </body>
