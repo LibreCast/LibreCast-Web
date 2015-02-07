@@ -1,3 +1,4 @@
+var url = require('url');
 var express = require('express');
 var RSS = require('rss');
 var ATOM = require('./lib/atom');
@@ -10,6 +11,11 @@ var app = express();
 
 app.engine('ejs', require('ejs').renderFile);
 app.set('view engine', 'ejs');
+
+var router = app;
+if (baseUrl) {
+	router = app.route(url.parse(baseUrl).pathname);
+}
 
 function indexFeed(Feed) {
 	var filename = (Feed === ATOM) ? 'atom' : 'rss';
@@ -112,34 +118,34 @@ function channelFeed(Feed, channel) {
 	return feed;
 }
 
-app.use('/app/', express.static(__dirname+'/public'));
+router.use('/app/', express.static(__dirname+'/public'));
 
-app.get('/', function (req, res) {
+router.get('/', function (req, res) {
 	var feed = indexFeed(ATOM);
 	res.render('index', { feed: feed });
 });
-app.get('/rss.xml', function (req, res) {
+router.get('/rss.xml', function (req, res) {
 	var xml = indexFeed(RSS).xml(true);
 	res.type('application/rss+xml').send(xml);
 });
-app.get('/atom.xml', function (req, res) {
+router.get('/atom.xml', function (req, res) {
 	var xml = indexFeed(ATOM).xml(true);
 	res.type('application/atom+xml').send(xml);
 });
 
-app.get('/:channel/', function (req, res) {
+router.get('/:channel/', function (req, res) {
 	var channel = req.params.channel;
 
 	var feed = channelFeed(ATOM, channel);
 	res.render('channel', { feed: feed });
 });
-app.get('/:channel/rss.xml', function (req, res) {
+router.get('/:channel/rss.xml', function (req, res) {
 	var channel = req.params.channel;
 
 	var xml = channelFeed(RSS, channel).xml(true);
 	res.type('application/rss+xml').send(xml);
 });
-app.get('/:channel/atom.xml', function (req, res) {
+router.get('/:channel/atom.xml', function (req, res) {
 	var channel = req.params.channel;
 
 	var xml = channelFeed(ATOM, channel).xml(true);
