@@ -15,27 +15,30 @@
 	#media-list, #medium-player {
 		display: none;
 	}
-	header > .pull-right {
+	header .actions {
+		float: right;
+		font-size: 20px;
 		line-height: 36px;
+		vertical-align: middle;
 	}
 	</style>
 </head>
 <body>
 	<div id="main-container" class="container">
-		<div id="channels-list">
+		<section id="channels-list">
 			<header>
-				<div class="pull-right">
+				<div class="actions">
 					<a href="#" target="_blank" class="atom-link"><i class="fa fa-rss"></i></a>
 				</div>
 				<h1>LibreCast</h1>
 			</header>
 
 			<div class="list-group"></div>
-		</div>
+		</section>
 
-		<div id="media-list" style="display:none;">
+		<section id="media-list" style="display:none;">
 			<header>
-				<div class="pull-right">
+				<div class="actions">
 					<a href="#" target="_blank" class="atom-link"><i class="fa fa-rss"></i></a>
 				</div>
 				<h1>
@@ -45,13 +48,18 @@
 			</header>
 
 			<div class="list-group"></div>
-		</div>
+		</section>
 
-		<div id="medium-player" style="display:none;">
-			<h1>
-				<a href="#" class="back-link"><i class="fa fa-angle-left"></i></a>&nbsp;
-				<span class="inner"></span>
-			</h1>
+		<section id="medium-player" style="display:none;">
+			<header>
+				<div class="actions">
+					<a href="#" target="_blank" class="download-link"><i class="fa fa-cloud-download"></i></a>
+				</div>
+				<h1>
+					<a href="#" class="back-link"><i class="fa fa-angle-left"></i></a>&nbsp;
+					<span class="inner"></span>
+				</h1>
+			</header>
 
 			<div class="player-image text-center">
 				<img class="img-responsive img-thumbnail">
@@ -71,7 +79,7 @@
 			<div class="player-metadata">
 				<p></p>
 			</div>
-		</div>
+		</section>
 	</div>
 
 	<script src="components/jquery/dist/jquery.min.js"></script>
@@ -213,6 +221,8 @@
 			$player.find('.player-fallback').show();
 		}
 		$player.show();
+
+		$player.find('.download-link').attr('href', enclosure.url);
 
 		switch (getEnclosureType(enclosure)) {
 			case 'image':
