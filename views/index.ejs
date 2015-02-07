@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<title><%= feed.title %></title>
+	<title>LibreCast</title>
 
 	<link rel="alternate" type="application/rss+xml" title="RSS" href="rss.xml" />
 	<link rel="alternate" type="application/atom+xml" title="Atom" href="atom.xml" />
 </head>
 <body>
-	<h1><%= feed.title %></h1>
+	<h1>LibreCast</h1>
 
 	<p>
 		<a href="rss.xml">RSS feed</a>
@@ -19,8 +19,8 @@
 	<h2>Channels</h2>
 
 	<ul>
-	<% feed.items.forEach(function (item) { %>
-		<li><a href="<%= item.url %>"><%= item.title %></a></li>
+	<% feeds.forEach(function (item) { %>
+		<li><a href="<%= item.slug %>/"><%= item.title %></a></li>
 	<% }); %>
 	</ul>
 </body>

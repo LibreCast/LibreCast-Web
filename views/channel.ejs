@@ -19,14 +19,20 @@
 	<h2>Items</h2>
 
 	<ul>
-	<% feed.items.forEach(function (item) { %>
-		<li><%= item.title %></li>
+	<% items.forEach(function (item) { %>
+		<li><%= item.title %>
+		<% if (item.enclosures) { %>
+		<% item.enclosures.forEach(function (enclosure) { %>
+		<br><a href="<%= enclosure.url %>" target="_blank"><%= enclosure.url %></a>
+		<% }); %>
+		<% } %>
+		</li>
 	<% }); %>
 	</ul>
 
 	<footer>
 		<p>
-			<a href="/">Back to channels list</a>
+			<a href="..">Back to channels list</a>
 		</p>
 	</footer>
 </body>

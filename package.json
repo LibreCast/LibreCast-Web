@@ -31,8 +31,11 @@
     "parse-torrent": "^4.0.0",
     "random-port": "^0.1.0",
     "rss": "^1.1.1",
+    "sails-disk": "^0.10.7",
+    "sails-memory": "^0.10.3",
     "torrent-stream": "^0.16.2",
     "uuid": "^2.0.1",
+    "waterline": "^0.10.18",
     "xml": "^1.0.0"
   }
 }
