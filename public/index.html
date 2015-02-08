@@ -182,7 +182,8 @@
 			title: parseEntryTag(entry, 'title'),
 			summary: parseEntryTag(entry, 'description'),
 			published: parseDateTag(entry, 'pubDate'),
-			url: parseEntryTag(entry, 'link')
+			url: parseEntryTag(entry, 'link'),
+			//image: parseEntryTag(entry, 'itunes:image', 'href'),
 		};
 
 		var enclosures = entry.querySelectorAll('enclosure');
@@ -204,6 +205,11 @@
 		this.title = parseEntryTag(feed, 'title');
 		this.updated = parseEntryTag(feed, 'lastBuildDate');
 		this.url = parseEntryTag(feed, 'link');
+
+		var image = feed.querySelector('image');
+		if (image) {
+			this.image = image.querySelector('url').textContent;
+		}
 
 		var entries = feed.querySelectorAll('item');
 		for (var i = 0; i < entries.length; i++) {
@@ -419,8 +425,12 @@
 			target: '_blank',
 			'class': 'list-group-item'
 		});
+
 		if (entry.published) {
 			$item.append($('<span></span>', { 'class': 'pull-right text-muted' }).text(entry.published.toLocaleString()));
+		}
+		if (entry.image) {
+			$item.append($('<img>', { 'class': 'pull-left' }).attr('src', entry.image));
 		}
 		
 		$item.append($('<h4></h4>', { 'class': 'list-group-item-heading' }).text(entry.title));
