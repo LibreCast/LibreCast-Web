@@ -316,6 +316,16 @@ function populateDb(app) {
 	}).exec(function (err, feed) {
 		if (err) throw err;
 	});
+
+	app.models.feed.create({
+		slug: 'thepianoguys',
+		title: 'ThePianoGuys',
+		summary: 'Une chaine Youtube',
+		author: 'ThePianoGuys',
+		rss_url: 'http://gdata.youtube.com/feeds/base/videos?orderby=published&author=ThePianoGuys'
+	}).exec(function (err, feed) {
+		if (err) throw err;
+	});
 }
 
 function setupApi(app) {
@@ -374,7 +384,8 @@ function setupApp(app) {
 		http.get(url, function (httpRes) {
 			var acceptedTypes = ['application/rss+xml', 'application/atom+xml', 'text/xml'];
 
-			if (acceptedTypes.indexOf(httpRes.headers['content-type']) < 0) {
+			var resType = String(httpRes.headers['content-type']).split(';')[0];
+			if (acceptedTypes.indexOf(resType) < 0) {
 				return res.status(500).json({ message: 'Not an Atom feed' });
 			}
 
