@@ -49,6 +49,7 @@ var Feed = Waterline.Collection.extend({
 		},
 		title: 'string',
 		summary: 'string',
+		rss_url: 'string',
 		atom_url: 'string',
 		image: 'string',
 		author: 'string',
@@ -142,9 +143,19 @@ function renderFeedsFeed(feeds, Xml) {
 			date: f.createdAt
 		};
 		if (Xml === ATOM) {
-			item.custom_elements = [
-				{ link: { _attr: { type: 'application/atom+xml', rel: 'alternate', href: f.atom_url || baseUrl+'/'+f.slug+'/atom.xml' } } }
-			];
+			item.custom_elements = [];
+
+			if (!f.rss_url && !f.atom_url) {
+				f.rss_url = f.rss_url || baseUrl+'/'+f.slug+'/rss.xml';
+				f.atom_url = f.atom_url || baseUrl+'/'+f.slug+'/atom.xml';
+			}
+
+			if (f.rss_url) {
+				item.custom_elements.push({ link: { _attr: { type: 'application/rss+xml', rel: 'alternate', href: f.rss_url } } });
+			}
+			if (f.atom_url) {
+				item.custom_elements.push({ link: { _attr: { type: 'application/atom+xml', rel: 'alternate', href: f.atom_url } } });
+			}
 		}
 		feed.item(item);
 	});
@@ -295,6 +306,16 @@ function populateDb(app) {
 	}).exec(function (err, feed) {
 		if (err) throw err;
 	});
+
+	app.models.feed.create({
+		slug: 'l-ecole-de-la-vie',
+		title: 'L\'école de la vie',
+		summary: 'Une émission France Inter',
+		author: 'France Inter',
+		rss_url: 'http://radiofrance-podcast.net/podcast09/rss_14085.xml'
+	}).exec(function (err, feed) {
+		if (err) throw err;
+	});
 }
 
 function setupApi(app) {
@@ -351,7 +372,9 @@ function setupApp(app) {
 		}
 
 		http.get(url, function (httpRes) {
-			if (httpRes.headers['content-type'] != 'application/atom+xml') {
+			var acceptedTypes = ['application/rss+xml', 'application/atom+xml', 'text/xml'];
+
+			if (acceptedTypes.indexOf(httpRes.headers['content-type']) < 0) {
 				return res.status(500).json({ message: 'Not an Atom feed' });
 			}
 
