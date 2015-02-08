@@ -103,6 +103,13 @@
 	var $playerMetadata = $player.find('.player-metadata');
 
 	function loadFeed(url, done) {
+		// Proxy requests if needed
+		var parser = document.createElement('a');
+		parser.href = url;
+		if (parser.origin != window.location.origin) {
+			url = 'feed?url='+encodeURIComponent(url);
+		}
+
 		var req = new XMLHttpRequest();
 
 		req.addEventListener('load', function () {
@@ -153,7 +160,7 @@
 			summary: parseEntryTag(entry, 'summary'),
 			content: parseEntryTag(entry, 'content', 'innerHTML'),
 			published: parseEntryTag(entry, 'published'),
-			url: parseEntryTag(entry, 'link[rel="alternate"][type="text/html"]', 'href'),
+			url: parseEntryTag(entry, 'link[rel="alternate"][type="text/html"], link:not([rel]):not([type])', 'href'),
 			feed_url: parseEntryTag(entry, 'link[rel="alternate"][type="application/atom+xml"]', 'href')
 		};
 
@@ -193,7 +200,7 @@
 	}
 
 	function getEnclosureType(enclosure) {
-		if (!enclosure.type) {
+		if (!enclosure || !enclosure.type) {
 			return false;
 		}
 
@@ -310,12 +317,16 @@
 			var feed = dom.firstChild;
 
 			var metadata = parseMetadata(feed);
+			if (!metadata.feed_url) {
+				metadata.feed_url = feedUrl;
+			}
 			$media.find('h1 .inner').text(metadata.title);
 			$media.find('.atom-link').attr('href', metadata.feed_url);
 
 			var entries = feed.querySelectorAll('entry');
 			for (var i = 0; i < entries.length; i++) {
 				var entry = parseEntry(entries[i]);
+
 				var $item = renderMediumEntry(entry);
 				$mediaList.append($item);
 			}

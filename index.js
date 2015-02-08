@@ -1,4 +1,5 @@
 var url = require('url');
+var http = require('http');
 var express = require('express');
 var bodyParser = require('body-parser');
 var RSS = require('rss');
@@ -205,8 +206,6 @@ function sendFeed(res, feed) {
 	res.type('application/'+feedType+'+xml').send(xml);
 }
 
-router.use('/app/', express.static(__dirname+'/public'));
-
 function populateDb(app) {
 	app.models.feed.create({
 		slug: 'librecast',
@@ -300,7 +299,6 @@ function populateDb(app) {
 
 function setupApi(app) {
 	var router = express.Router();
-
 	router.use(bodyParser.json());
 
 	router.get('/', function (req, res) {
@@ -339,6 +337,39 @@ function setupApi(app) {
 	});
 
 	app.use('/api', router);
+}
+
+function setupApp(app) {
+	var router = express.Router();
+
+	router.use('/', express.static(__dirname+'/public'));
+
+	router.use('/feed', function (req, res) {
+		var url = req.query.url;
+		if (!url) {
+			return res.status(400).json({ message: 'Missing url parameter' });
+		}
+
+		http.get(url, function (httpRes) {
+			if (httpRes.headers['content-type'] != 'application/atom+xml') {
+				return res.status(500).json({ message: 'Not an Atom feed' });
+			}
+
+			res.status(httpRes.statusCode);
+			var headers = ['content-type', 'content-length'];
+			headers.forEach(function (header) {
+				if (!httpRes.headers[header]) {
+					return;
+				}
+				res.set(header, httpRes.headers[header]);
+			});
+			httpRes.pipe(res);
+		}).on('error', function (err) {
+			return res.status(500).json(err);
+		});
+	});
+
+	app.use('/app', router);
 }
 
 function setupFeeds(app) {
@@ -407,6 +438,7 @@ orm.initialize(ormConfig, function (err, models) {
 		app.connections = models.connections;
 
 		setupApi(app);
+		setupApp(app);
 		setupFeeds(app);
 		setupSite(app);
 
