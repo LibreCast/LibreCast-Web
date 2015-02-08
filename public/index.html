@@ -64,11 +64,14 @@
 			<div class="player-image text-center">
 				<img class="img-responsive img-thumbnail">
 			</div>
+			<div class="player-audio text-center">
+				<audio controls></audio>
+			</div>
 			<div class="player-video text-center">
 				<video controls></video>
 			</div>
-			<div class="player-audio text-center">
-				<audio controls></audio>
+			<div class="player-youtube text-center embed-responsive embed-responsive-16by9">
+				<iframe class="embed-responsive-item" frameborder="0"></iframe>
 			</div>
 			<div class="player-fallback">
 				<p class="text-center">
@@ -77,7 +80,8 @@
 			</div>
 
 			<div class="player-metadata">
-				<p></p>
+				<br><br>
+				<div class="player-description"></div>
 			</div>
 		</section>
 	</div>
@@ -101,6 +105,12 @@
 			return tag.getAttribute(attr);
 		}
 	}
+	function parseDateTag(entry, selector, attr) {
+		var val = parseEntryTag(entry, selector, attr);
+		if (val) {
+			return new Date(val);
+		}
+	}
 
 	function Feed() {
 		this.type = '';
@@ -119,12 +129,20 @@
 			id: parseEntryTag(entry, 'id'),
 			title: parseEntryTag(entry, 'title'),
 			summary: parseEntryTag(entry, 'summary'),
-			content: parseEntryTag(entry, 'content', 'innerHTML'),
-			published: parseEntryTag(entry, 'published'),
+			published: parseDateTag(entry, 'published'),
 			url: parseEntryTag(entry, 'link[rel="alternate"][type="text/html"], link:not([rel]):not([type])', 'href'),
 			rss_url: parseEntryTag(entry, 'link[rel="alternate"][type="application/rss+xml"]', 'href'),
 			atom_url: parseEntryTag(entry, 'link[rel="alternate"][type="application/atom+xml"]', 'href')
 		};
+
+		var contentTag = entry.querySelector('content');
+		if (contentTag) {
+			if (contentTag.firstElementChild) {
+				item.content = contentTag.innerHTML;
+			} else {
+				item.content = contentTag.textContent;
+			}
+		}
 
 		var enclosures = entry.querySelectorAll('link[rel="enclosure"]');
 		if (enclosures.length) {
@@ -163,7 +181,7 @@
 		var item = {
 			title: parseEntryTag(entry, 'title'),
 			summary: parseEntryTag(entry, 'description'),
-			published: parseEntryTag(entry, 'pubDate'),
+			published: parseDateTag(entry, 'pubDate'),
 			url: parseEntryTag(entry, 'link')
 		};
 
@@ -207,6 +225,7 @@
 	var $imagePlayer = $player.find('.player-image img');
 	var $audioPlayer = $player.find('.player-audio audio');
 	var $videoPlayer = $player.find('.player-video video');
+	var $youtubePlayer = $player.find('.player-youtube iframe');
 	var $fallbackPlayer = $player.find('.player-fallback');
 	var $playerMetadata = $player.find('.player-metadata');
 
@@ -267,14 +286,17 @@
 			href: entry.url,
 			'class': 'list-group-item'
 		});
+		if (entry.published) {
+			$item.append($('<span></span>', { 'class': 'pull-right text-muted' }).text(entry.published.toLocaleString()));
+		}
 		$item.append($('<h4></h4>', { 'class': 'list-group-item-heading' }).text(entry.title));
 		$item.append($('<p></p>', { 'class': 'list-group-item-text' }).text(entry.summary));
 
 		$item.click(function (event) {
 			event.preventDefault();
 
-			$(this).parent().children('.active').removeClass('active');
-			$(this).addClass('active');
+			//$(this).parent().children('.active').removeClass('active');
+			//$(this).addClass('active');
 			showChannel(entry.atom_url || entry.rss_url);
 		});
 
@@ -297,6 +319,13 @@
 		}
 		if (enclosure.type == 'application/x-bittorrent') {
 			return 'torrent';
+		}
+		if (enclosure.type == 'text/html') {
+			var parser = document.createElement('a');
+			parser.href = enclosure.url;
+			if (parser.hostname == 'www.youtube.com' && parser.pathname == '/watch') {
+				return 'youtube';
+			}
 		}
 
 		return false;
@@ -325,6 +354,14 @@
 			case 'video':
 				$videoPlayer.attr('src', enclosure.url);
 				break;
+			case 'youtube':
+				var parser = document.createElement('a');
+				parser.href = enclosure.url;
+				var videoId = parser.searchParams.get('v');
+				if (videoId) {
+					$youtubePlayer.attr('src', '//www.youtube.com/embed/'+videoId);
+				}
+				break;
 			default:
 				$fallbackPlayer.find('a').attr('href', enclosure.url);
 				return;
@@ -340,7 +377,7 @@
 			$player.find('h1 .inner').append('<br>').append($('<small></small>').text(entry.summary));
 		}
 
-		$playerMetadata.find('p').html(entry.content || '');
+		$playerMetadata.find('.player-description').html(entry.content || '');
 
 		openEnclosure(enclosure);
 	}
@@ -360,10 +397,19 @@
 	function renderMediumEntry(entry) {
 		var enclosure = getMediumEnclosure(entry);
 
+		if (!enclosure && entry.url && entry.url.indexOf('http://www.youtube.com/watch') === 0) {
+			enclosure = {
+				url: entry.url,
+				type: 'text/html'
+			};
+			entry.enclosures = [enclosure];
+		}
+
 		var icons = {
 			image: 'picture-o',
 			audio: 'music',
 			video: 'film',
+			youtube: 'youtube-play',
 			torrent: ''
 		};
 		var icon = icons[getEnclosureType(enclosure)];
@@ -373,14 +419,19 @@
 			target: '_blank',
 			'class': 'list-group-item'
 		});
+		if (entry.published) {
+			$item.append($('<span></span>', { 'class': 'pull-right text-muted' }).text(entry.published.toLocaleString()));
+		}
+		
 		$item.append($('<h4></h4>', { 'class': 'list-group-item-heading' }).text(entry.title));
 		$item.append($('<p></p>', { 'class': 'list-group-item-text' }).text(entry.summary).prepend((icon) ? '<i class="fa fa-'+icon+'"></i>&nbsp;' : ''));
 
 		$item.click(function (event) {
 			if (enclosure) {
 				event.preventDefault();
-				$(this).parent().children('.active').removeClass('active');
-				$(this).addClass('active');
+
+				//$(this).parent().children('.active').removeClass('active');
+				//$(this).addClass('active');
 				openMedium(entry);
 			}
 		});
