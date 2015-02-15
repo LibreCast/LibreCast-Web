@@ -31,6 +31,8 @@ function Feed() {
 
 function AtomFeed() {
 	Feed.call(this);
+
+	this.type = 'atom';
 }
 AtomFeed.prototype.parseEntry = function (entry) {
 	var item = {
@@ -84,6 +86,8 @@ AtomFeed.prototype.parse = function (dom) {
 
 function RssFeed() {
 	Feed.call(this);
+
+	this.type = 'rss';
 }
 RssFeed.prototype.parseEntry = function (entry) {
 	var item = {

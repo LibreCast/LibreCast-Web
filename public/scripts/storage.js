@@ -5,6 +5,9 @@
 
 	Storage.prototype.load = function () {
 		var json = localStorage.getItem(this.key);
+		if (!json) {
+			return null;
+		}
 		return JSON.parse(json);
 	};
 
@@ -18,8 +21,12 @@
 	}
 	FeedStorage.prototype = $.extend({}, Storage.prototype);
 
+	FeedStorage.prototype.listFeeds = function () {
+		return this.load() || [];
+	};
+
 	FeedStorage.prototype.addFeed = function (feed) {
-		var feeds = this.load();
+		var feeds = this.load() || [];
 		for (var i = 0; i < feeds.length; i++) {
 			var f = feeds[i];
 			if (f.url == feed.url) {

@@ -271,12 +271,13 @@ $('#add-feed-popover').submit(function (event) {
 		if (err) return alert('Could not load channel: ' + err);
 
 		var data = {
-			url: url,
-			title: feed.title
+			url: feed.url,
+			title: feed.title,
+			published: new Date().toString()
 		};
+		data[feed.type+'_url'] = url;
 
-		console.log(data);
-		//localFeedStorage.addFeed(data);
+		localFeedStorage.addFeed(data);
 	});
 
 	$(this)[0].reset();
@@ -317,12 +318,17 @@ $player.find('.back-link').click(function (event) {
 });
 
 // Load channels feed
-
-var channelsFeed = serverUrl+'/atom.xml';
-
 $channelsList.empty();
 
-loadFeed(channelsFeed, function (err, feed) {
+var localFeeds = localFeedStorage.listFeeds();
+for (var i = 0; i < localFeeds.length; i++) {
+	var entry = localFeeds[i];
+
+	var $item = renderChannelEntry(entry);
+	$channelsList.append($item);
+}
+
+loadFeed(serverUrl+'/atom.xml', function (err, feed) {
 	if (err) return alert('Could not load channels list: ' + err);
 
 	$channels.find('.atom-link').attr('href', feed.atom_url);
