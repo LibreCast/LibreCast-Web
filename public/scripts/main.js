@@ -150,6 +150,10 @@ function openEnclosure(enclosure) {
 				$youtubePlayer.attr('src', '//www.youtube.com/embed/'+videoId);
 			}
 			break;
+		case 'torrent':
+			$player.find('.player-video').show();
+			$videoPlayer.attr('src', 'media?url='+encodeURIComponent(enclosure.url));
+			break;
 		default:
 			$fallbackPlayer.find('a').attr('href', enclosure.url);
 			return;

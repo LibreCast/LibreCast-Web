@@ -1,10 +1,13 @@
 var url = require('url');
+var path = require('path');
 var http = require('http');
 var express = require('express');
 var bodyParser = require('body-parser');
 var RSS = require('rss');
 var ATOM = require('./lib/atom');
 var Waterline = require('waterline');
+var torrentStream = require('torrent-stream');
+var rangeParser = require('range-parser');
 var config = require('./config');
 
 // ORM
@@ -279,16 +282,16 @@ function populateDb(app) {
 		});
 
 		app.models.feeditem.create({
-			slug: 'the-interview',
-			title: 'The Interview',
-			summary: 'Wow',
+			slug: 'northmen',
+			title: 'Northmen - A Viking Saga',
+			summary: 'Wow, magnets!',
 			feed: feed.id
 		}).exec(function (err, item) {
 			if (err) throw err;
 
 			app.models.feedenclosure.create({
-				//url: 'magnet:?xt=urn:btih:4A5942DD1BB1DF3D2491B18FF48F627415E1947C&dn=the+interview+2014+720p+brrip+x264+yify&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce',
-				url: 'http://torcache.net/torrent/4A5942DD1BB1DF3D2491B18FF48F627415E1947C.torrent?title=%5Bkickass.so%5Dthe.interview.2014.720p.brrip.x264.yify',
+				url: 'magnet:?xt=urn:btih:DFB468C367210DEFF555CF6F1AFB9A6C473EBDB2&dn=northmen+a+viking+saga+2014+720p+brrip+x264+yify&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce',
+				//url: 'http://torcache.net/torrent/DFB468C367210DEFF555CF6F1AFB9A6C473EBDB2.torrent',
 				type: 'application/x-bittorrent',
 				item: item.id
 			}).exec(function (err, enclosure) {
@@ -403,6 +406,89 @@ function setupApp(app) {
 		});
 	});
 
+	var torrents = {};
+
+	router.use('/media', function (req, res) {
+		var url = req.query.url;
+		if (!url) {
+			return res.status(400).json({ message: 'Missing url parameter' });
+		}
+
+		var serveTorrent = function (engine) {
+			var found = false;
+			for (var i = 0; i < engine.files.length; i++) {
+				var file = engine.files[i];
+				if (path.extname(file.name) == '.mp4') {
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				return res.status(404).send('No .mp4 file found in torrent');
+			}
+
+			var range = req.headers.range;
+			range = range && rangeParser(file.length, range)[0];
+			res.setHeader('Accept-Ranges', 'bytes');
+			res.type(file.name);
+			req.connection.setTimeout(3600000);
+
+			if (!range) {
+				res.setHeader('Content-Length', file.length);
+				if (req.method === 'HEAD') {
+					return res.end();
+				}
+				return file.createReadStream().pipe(res);
+			}
+
+			res.status(206);
+			res.setHeader('Content-Length', range.end - range.start + 1);
+			res.setHeader('Content-Range', 'bytes ' + range.start + '-' + range.end + '/' + file.length);
+
+			if (req.method === 'HEAD') {
+				return res.end();
+			}
+			file.createReadStream(range).pipe(res);
+		};
+
+		if (torrents[url]) {
+			return serveTorrent(torrents[url]);
+		}
+
+		var engine;
+		try {
+			engine = torrentStream(url);
+		} catch (e) {
+			console.log(url, e);
+			return res.status(400).json({ message: e });
+		}
+
+		engine.once('verifying', function () {
+			console.log('verifying ' + engine.infoHash);
+			engine.files.forEach(function (file, i) {
+				console.log(i + ' ' + file.name);
+			});
+		});
+		engine.on('ready', function () {
+			console.log('ready ' + engine.infoHash);
+			engine.files.forEach(function (file) {
+				console.log('file:', file);
+			});
+
+			serveTorrent(engine);
+		});
+		engine.on('error', function (e) {
+			console.log('error ' + engine.infoHash + ': ' + e);
+			res.status(500).send(e);
+		});
+		engine.once('destroyed', function () {
+			console.log('destroyed ' + engine.infoHash);
+			engine.removeAllListeners();
+		});
+
+		torrents[url] = engine;
+	});
+
 	app.use('/app', router);
 }
 
@@ -445,7 +531,9 @@ function setupFeeds(app) {
 }
 
 function setupSite(app) {
-	app.get('/', function (req, res) {
+	var router = express.Router();
+
+	router.get('/', function (req, res) {
 		app.models.feed.find().exec(function (err, models) {
 			if (err) return res.json(err, err.status);
 
@@ -453,15 +541,18 @@ function setupSite(app) {
 		});
 	});
 
-	app.get('/:channel/', function (req, res) {
+	router.get('/:channel/', function (req, res) {
 		app.models.feed.findOne({ slug: req.params.channel }, function (err, model) {
 			if (err) return res.json(err, err.status);
+			if (!model) return res.status(404).send('Channel not found');
 			app.models.feeditem.find({ feed: model.id }).populate('enclosures').exec(function (err, models) {
 				if (err) return res.json(err, err.status);
 				res.render('channel', { feed: model, items: models });
 			});
 		});
 	});
+
+	app.use('/', router);
 }
 
 orm.initialize(ormConfig, function (err, models) {
