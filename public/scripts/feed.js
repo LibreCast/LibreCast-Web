@@ -120,7 +120,11 @@ RssFeed.prototype.parseFeed = function (feed) {
 
 	var image = feed.querySelector('image');
 	if (image) {
-		this.image = image.querySelector('url').textContent;
+		if (image.prefix == 'itunes') {
+			this.image = image.getAttribute('href');
+		} else {
+			this.image = image.querySelector('url').textContent;
+		}
 	}
 
 	var entries = feed.querySelectorAll('item');
